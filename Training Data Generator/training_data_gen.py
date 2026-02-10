@@ -1,18 +1,21 @@
-import numpy as np
-from propagate import propagate_plane_wave
-from scipy.ndimage import gaussian_filter, zoom
 import random
+import numpy as np
+from scipy.ndimage import gaussian_filter, zoom
+from propagate import propagate_plane_wave
 
-def generate_data(ph0, amp, delta_ph_max, z1, z2, lambda_, dx, nx, ny, px, py):
+
+def generate_data(phase, phase_range, amplitude_range, px_trim_value, z1, z2, lambda_, dx, nx, ny, px, py, amplitude_image=None):
     sigma = 85
+    if amplitude_image is None:
+        amplitude = np.ones(phase.shape)
+    else:
+        amplitude = amplitude_image
 
     # Generation of object wave
-    # delta_ph = delta_ph_max
-    # delta_ph = (2*np.random.rand()-1)*delta_ph_max
-    ph_range = random.uniform(-np.pi, np.pi)
-    amp_range = random.uniform(0, 0.3)
-    ph0 = ph0[3:-3, 3:-3]
-    amp = amp[3:-3, 3:-3]
+    ph_range = random.uniform(phase_range[0], phase_range[1])
+    amp_range = random.uniform(amplitude_range[0], amplitude_range[1])
+    ph0 = phase[px_trim_value:-px_trim_value, px_trim_value:-px_trim_value]
+    amp = amplitude[px_trim_value:-px_trim_value, px_trim_value:-px_trim_value]
 
     # Scaling and processing phase image
     zoom_factor_ph_x = nx/ph0.shape[1]
@@ -46,7 +49,7 @@ def generate_data(ph0, amp, delta_ph_max, z1, z2, lambda_, dx, nx, ny, px, py):
 
     # Calculation of the optical field
     ph_obj = ph0 - np.median(ph0)
-    amp_obj = 1 + amp_range*(amp - 0.5)
+    amp_obj = np.ones(ph_obj.shape) if amplitude_image is None else 1 + amp_range*(amp - 0.5)
     u_obj = amp_obj * np.exp(1j * ph_obj)
 
     # Simulation of two defocused intensity measurements
@@ -61,6 +64,5 @@ def generate_data(ph0, amp, delta_ph_max, z1, z2, lambda_, dx, nx, ny, px, py):
     i1 = i1[int(py / 2 - ny / 2): int(py / 2 + ny / 2), int(px / 2 - nx / 2): int(px / 2 + nx / 2)]
     i2 = i2[int(py / 2 - ny / 2): int(py / 2 + ny / 2), int(px / 2 - nx / 2): int(px / 2 + nx / 2)]
     ph_obj = ph_obj[int(py / 2 - ny / 2): int(py / 2 + ny / 2), int(px / 2 - nx / 2): int(px / 2 + nx / 2)]
-
 
     return i1, i2, ph_obj
